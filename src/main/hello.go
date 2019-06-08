@@ -1,6 +1,26 @@
 package main
-import "fmt"
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/go-chi/chi"
+
+	"../handler"
+)
 
 func main() {
-		fmt.Println("Hello modafackas!!")
+	port := ":3000"
+	servers := []string{"hello server1", "hello server2", "hello server3"}
+
+	r := chi.NewRouter()
+	r.Get("/serverStatus", handler.ServerStatusGet(servers))
+	r.Post("/newServer", handler.ServerStatusPost(""))
+
+	fmt.Printf("Starting server for testing HTTP...\n")
+
+	if err := http.ListenAndServe(port, r); err != nil {
+		log.Fatal(err)
+	}
 }
