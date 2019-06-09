@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 
 	server "../server"
@@ -37,59 +36,50 @@ func ServerStatusPost(domain string) http.HandlerFunc {
 
 		if domainToAnalyze == "" {
 			domainToAnalyze = r.FormValue("domain")
-			fmt.Fprintf(w, "domain = %s\n", domainToAnalyze)
 			fmt.Println("DOMAIN from request>>> " + domainToAnalyze)
 		}
 
 		response, err := http.Get(analyzerEndpoint + domainToAnalyze)
 		if err != nil {
-
-			log.Fatalln("The HTTP request failed with error", err)
+			fmt.Println("The HTTP request failed with error", err)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 
 		data, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-
-			log.Fatalln("Error reading body of response")
+			fmt.Println("Error reading body of response")
+			w.WriteHeader(http.StatusInternalServerError)
 		}
-
-		// fmt.Println(string(data))
 
 		var domainInfo server.Domain
 		err = json.Unmarshal(data, &domainInfo)
 		if err != nil {
-			log.Fatalln("Unmarshal IS FAILED", err)
+			fmt.Println("Unmarshal IS FAILED", err)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 
 		var buf = new(bytes.Buffer)
 		enc := json.NewEncoder(buf)
 		enc.Encode(domainInfo)
 
-		fmt.Println("domain info >>> ")
-		fmt.Println(domainInfo)
+		if domainInfo.Status == "ERROR" {
 
-		fmt.Println("domainInfo.Endpoints >>> ")
-		fmt.Println(domainInfo.Endpoints)
-
-		if len(domainInfo.Endpoints) != 0 {
-
-			var server = server.CreateServer(domainInfo)
-			// var serversDescription = server.CreateServersDescripton(domainInfo.Endpoints)
-
-			fmt.Println("")
-			fmt.Println("serversDescription >>>>")
-
-			var buf = new(bytes.Buffer)
-			enc := json.NewEncoder(buf)
-			enc.Encode(server)
-			// json.NewEncoder(w).Encode(serversDescription)
-			fmt.Println(buf)
+			w.WriteHeader(http.StatusBadRequest)
 		} else {
-			fmt.Println("retrying reaching endpoints >>>")
 
-			ServerStatusPost(domainToAnalyze)
+			if len(domainInfo.Endpoints) != 0 {
+				var server = server.CreateServer(domainInfo)
+
+				fmt.Println("")
+				fmt.Println("serversDescription >>>>")
+				json.NewEncoder(w).Encode(server)
+				w.WriteHeader(http.StatusOK)
+
+			} else {
+				fmt.Println("retrying reaching endpoints >>>")
+
+				go ServerStatusPost(domainToAnalyze)
+			}
 		}
-
-		w.WriteHeader(http.StatusOK)
 	}
 }
