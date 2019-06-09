@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	utils "../utils"
 	"github.com/likexian/whois-go"
 )
 
@@ -18,10 +19,13 @@ var SSLGrades = []string{"A+", "A", "B", "C", "D", "E", "F", "T", "M"}
 
 // CreateServer classifies endpoints into DescriptionServer structures.
 func CreateServer(domain Domain) Server {
+
+	infoTitleLogo := getTitleOrLogo(domain.Host)
+
 	var server = Server{
 		Servers:          nil,
-		Title:            getTitle(domain.Host),
-		Logo:             "logo",
+		Title:            infoTitleLogo[0],
+		Logo:             infoTitleLogo[1],
 		ServersChanged:   false,
 		SslGrade:         "T",
 		PreviousSslGrade: "T",
@@ -149,7 +153,7 @@ func getSslGrade(descriptionServer []DescriptionServer) string {
 		fmt.Println(endpoint.SslGrade)
 		if endpoint.SslGrade != unknown {
 
-			var currentGrade = indexOf(endpoint.SslGrade, SSLGrades)
+			var currentGrade = utils.IndexOf(endpoint.SslGrade, SSLGrades)
 			if currentGrade > gradeIndex {
 				gradeIndex = currentGrade
 
@@ -172,24 +176,16 @@ func getPreviousSSL(descriptionServer []DescriptionServer) string {
 	return "TODO"
 }
 
-// indexOf find index of element in data array
-func indexOf(element string, data []string) int {
-	for k, v := range data {
-		if element == v {
-			return k
-		}
-	}
-	return -1 //not found.
-}
-
 // getTitle from the head of the host webpage
-func getTitle(hostName string) string {
+func getTitleOrLogo(hostName string) []string {
 	var title = ""
 	var logo = ""
+	var info = []string{"ERROR", "ERROR"}
 	response, err := http.Get("https://" + hostName)
 	if err != nil {
 		fmt.Println("The HTTP request failed with error", err)
-		return "ERROR"
+
+		return info
 	}
 
 	if response.StatusCode == http.StatusOK {
@@ -197,7 +193,7 @@ func getTitle(hostName string) string {
 		data, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			fmt.Println("Error reading body of response")
-			return "ERROR"
+			return info
 		}
 
 		content := string(data)
@@ -206,7 +202,7 @@ func getTitle(hostName string) string {
 
 			isTitle := strings.Contains(line, "<title>")
 			if isTitle && title == "" {
-				title = trimTitle(line)
+				title = utils.TrimTitle(line)
 				break
 			}
 		}
@@ -214,7 +210,7 @@ func getTitle(hostName string) string {
 		for _, line := range strings.Split(strings.TrimSuffix(content, "\n"), "\n") {
 			isLogo := strings.Contains(line, `type="image/x-icon"`)
 			if isLogo && logo == "" {
-				logo = trimLogo(line)
+				logo = utils.TrimLogo(line)
 				break
 
 			}
@@ -222,57 +218,7 @@ func getTitle(hostName string) string {
 
 	}
 
-	return title
-}
-
-func trimTitle(line string) string {
-	var title = ""
-	fmt.Println("HERE IN CONTAInS")
-	fmt.Println(line)
-	line = strings.TrimSpace(line)
-
-	splitedTitle := strings.Split(line, "<title>")
-
-	fmt.Println("Firts splitedTitle >>>>")
-	fmt.Println(splitedTitle)
-
-	title = splitedTitle[1]
-
-	fmt.Println("Firts title >>>>")
-	fmt.Println(title)
-	splitedTitle = strings.Split(title, "</title>")
-
-	fmt.Println("second splitedTitle >>>>")
-	fmt.Println(splitedTitle)
-
-	title = splitedTitle[0]
-	return title
-}
-
-func trimLogo(line string) string {
-	var logo = ""
-	fmt.Println("trimLogo")
-	fmt.Println(line)
-	line = strings.TrimSpace(line)
-
-	splitedlogo := strings.Split(line, `type="image/x-icon"`)
-
-	fmt.Println("Firts splitedlogo >>>>")
-	fmt.Println(splitedlogo)
-
-	logo = splitedlogo[1]
-
-	fmt.Println("Firts logo >>>>")
-	fmt.Println(logo)
-	splitedlogo = strings.Split(logo, `"`)
-
-	fmt.Println("second splitedlogo >>>>")
-	fmt.Println(splitedlogo)
-
-	logo = splitedlogo[1]
-
-	fmt.Println("final logo >>>>")
-	fmt.Println(logo)
-
-	return logo
+	info[0] = title
+	info[1] = logo
+	return info
 }
