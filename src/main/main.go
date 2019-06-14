@@ -7,17 +7,17 @@ import (
 
 	"github.com/go-chi/chi"
 
+	"../database"
 	"../handler"
 )
 
-// this is the main function of the backend. It creates the Chi API router and defines its routes
-func main() {
+func initRouter() {
 	servers := []string{"hello server1", "hello server2", "hello server3"}
 
 	r := chi.NewRouter()
 	r.Route("/detectServerSecurity/api/v1/", func(r chi.Router) {
-		r.Get("/serverStatus", handler.ServerStatusGet(servers))
-		r.Post("/newServer", handler.ServerStatusPost())
+		r.Get("/serverStatus", handler.ExecuteGetRequest(servers))
+		r.Post("/newServer", handler.ExecutePostRequest())
 
 	})
 
@@ -28,4 +28,10 @@ func main() {
 	if err := http.ListenAndServe(port, r); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// this is the main function of the backend. It creates the connection to Database, the Chi API router and defines its routes.
+func main() {
+	database.ConnectDB()
+	initRouter()
 }

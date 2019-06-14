@@ -2,6 +2,7 @@ package server
 
 // Imports
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -17,12 +18,14 @@ const unknown = "UNKNOWN"
 // SSLGrades is an array with the posible ssl grade values
 var SSLGrades = []string{"A+", "A", "B", "C", "D", "E", "F", "T", "M"}
 
-// CreateServer classifies endpoints into DescriptionServer structures.
-func CreateServer(domain Domain) Server {
+// CreateServer classifies endpoints into Domain structures.
+func CreateServer(domainDescription DomainDescription) (Domain, error) {
+	fmt.Println("here in CreateServer")
 
-	infoTitleLogo := getTitleOrLogo(domain.Host)
+	infoTitleLogo := getTitleOrLogo(domainDescription.Host)
 
-	var server = Server{
+	domain := Domain{
+		Name:             domainDescription.Host,
 		Servers:          nil,
 		Title:            infoTitleLogo[0],
 		Logo:             infoTitleLogo[1],
@@ -32,35 +35,36 @@ func CreateServer(domain Domain) Server {
 		IsDown:           false,
 	}
 
-	server = ConfigureServerDescription(domain, server)
-	return server
+	domainFilled, err := ConfigureServerDescription(domainDescription, domain)
+	return domainFilled, err
 }
 
-// ConfigureServerDescription classifies endpoints into DescriptionServer structures.
-func ConfigureServerDescription(domain Domain, server Server) Server {
-	var newServer = server
-	var endpoints = domain.Endpoints
-	var serversDescription = make([]DescriptionServer, len(endpoints))
+// ConfigureServerDescription classifies endpoints into DetailsServer structures.
+func ConfigureServerDescription(domainDescription DomainDescription, domain Domain) (Domain, error) {
+	fmt.Println("here in ConfigureServerDescription")
+	newDomain := Domain{}
+	var endpoints = domainDescription.Endpoints
+	var detailsServer = make([]DetailsServer, len(endpoints))
 
-	newServer.Servers = serversDescription
+	domain.Servers = detailsServer
 
 	for i := 0; i < len(endpoints); i++ {
 
 		if endpoints[i].StatusMessage == "Ready" {
-			serversDescription[i].SslGrade = endpoints[i].Grade
+			detailsServer[i].SslGrade = endpoints[i].Grade
 
 		} else {
-			serversDescription[i].SslGrade = unknown
+			detailsServer[i].SslGrade = unknown
 
 		}
 
-		serversDescription[i].Address = endpoints[i].IPAddress
+		detailsServer[i].Address = endpoints[i].IPAddress
 
 		if strings.Contains(endpoints[i].IPAddress, ":") {
 			fmt.Println("IS IPV6 >>> ")
 
-			serversDescription[i].Country = ipv6AddressWarning
-			serversDescription[i].Owner = ipv6AddressWarning
+			detailsServer[i].Country = ipv6AddressWarning
+			detailsServer[i].Owner = ipv6AddressWarning
 			continue
 		}
 
@@ -68,26 +72,28 @@ func ConfigureServerDescription(domain Domain, server Server) Server {
 		result, err := whois.Whois(endpoints[i].IPAddress)
 		if err != nil {
 			fmt.Println("WHOIS COMMAND FAILED")
-			newServer.IsDown = true
+			domain.IsDown = true
 
-			serversDescription[i].Country = unknown
-			serversDescription[i].Owner = unknown
-			continue
+			detailsServer[i].Country = unknown
+			detailsServer[i].Owner = unknown
+
+			return newDomain, errors.New("WhoIs command failed")
 		}
 
 		fmt.Println("WHO IS SUCCESS >>>>")
 
-		serversDescription[i] = getOwnerAndCountry(serversDescription[i], result)
+		detailsServer[i] = getOwnerAndCountry(detailsServer[i], result)
 
 	}
-	newServer.SslGrade = getSslGrade(newServer.Servers)
-	newServer.PreviousSslGrade = getPreviousSSL(newServer.Servers)
+	domain.SslGrade = getSslGrade(domain.Servers)
+	domain.PreviousSslGrade = getPreviousSSL(domain.Servers)
 
-	return newServer
+	newDomain = domain
+	return newDomain, nil
 }
 
 // getOwner
-func getOwnerAndCountry(descriptionServer DescriptionServer, result string) DescriptionServer {
+func getOwnerAndCountry(descriptionServer DetailsServer, result string) DetailsServer {
 	fmt.Println("here in getOwnerAndCountry >>>>>>>>> ")
 
 	fmt.Println(descriptionServer)
@@ -142,7 +148,7 @@ func getOwnerAndCountry(descriptionServer DescriptionServer, result string) Desc
 }
 
 // getSslGrade gets the lower grade of the SSLGrade in Server endpoints
-func getSslGrade(descriptionServer []DescriptionServer) string {
+func getSslGrade(descriptionServer []DetailsServer) string {
 
 	fmt.Println("HERE IN getSslGrade")
 	fmt.Println(descriptionServer)
@@ -151,9 +157,10 @@ func getSslGrade(descriptionServer []DescriptionServer) string {
 
 	for _, endpoint := range descriptionServer {
 		fmt.Println(endpoint.SslGrade)
-		if endpoint.SslGrade != unknown {
 
+		if endpoint.SslGrade != unknown {
 			var currentGrade = utils.IndexOf(endpoint.SslGrade, SSLGrades)
+
 			if currentGrade > gradeIndex {
 				gradeIndex = currentGrade
 
@@ -162,17 +169,16 @@ func getSslGrade(descriptionServer []DescriptionServer) string {
 		}
 
 		if sslGrade == "" {
-
 			sslGrade = endpoint.SslGrade
-		}
 
+		}
 	}
 
 	return sslGrade
 }
 
 // getSslGrade gets the lower grade of the SSLGrade in Server endpoints
-func getPreviousSSL(descriptionServer []DescriptionServer) string {
+func getPreviousSSL(descriptionServer []DetailsServer) string {
 	return "TODO"
 }
 
@@ -221,4 +227,27 @@ func getTitleOrLogo(hostName string) []string {
 	info[0] = title
 	info[1] = logo
 	return info
+}
+
+// SameServerDetails returns wheather the domain has still the same DetailsServer or not.
+func SameServerDetails(oldDetailsServer []DetailsServer, currentDetailsServer []DetailsServer) bool {
+
+	// First lets ensure both have the same length
+	if len(oldDetailsServer) != len(currentDetailsServer) {
+		return true
+	}
+
+	for index, oldDetail := range oldDetailsServer {
+		currentDetail := currentDetailsServer[index]
+
+		if (oldDetail.Address != currentDetail.Address) ||
+			(oldDetail.Country != currentDetail.Country) ||
+			(oldDetail.Owner != currentDetail.Owner) ||
+			(oldDetail.SslGrade != currentDetail.SslGrade) {
+			return true
+
+		}
+	}
+
+	return false
 }

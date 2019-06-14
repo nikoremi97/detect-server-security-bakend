@@ -36,7 +36,6 @@ func ValidateQuery(queryParam string) (fixedQuery string, err error) {
 	}
 
 	isDNSName := govalidator.IsDNSName(query)
-	fmt.Println(isDNSName)
 	if isDNSName {
 		return query, nil
 
