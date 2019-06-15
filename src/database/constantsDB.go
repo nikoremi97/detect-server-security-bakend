@@ -1,5 +1,9 @@
 package database
 
+/**
+ * SQL Querys to insert in DB
+ */
+
 // SQLCreateDomain is the sql query to insert a new domain into domains table
 var SQLCreateDomain = `
 INSERT INTO domains (
@@ -42,6 +46,13 @@ INSERT INTO serverdetails (
 )
 RETURNING id`
 
+/**
+ * SQL Querys to select from DB
+ */
+
+// SQLSelectDomains is the sql query for retrive all records in domains table
+var SQLSelectDomains = `SELECT id, domain, servers_changed , ssl_grade , previous_ssl , logo , title, is_down FROM domains`
+
 // SQLGetUpdateTimeDomain is the sql query to get update field from a given domain id
 var SQLGetUpdateTimeDomain = `SELECT updated FROM domains WHERE id = $1`
 
@@ -49,7 +60,10 @@ var SQLGetUpdateTimeDomain = `SELECT updated FROM domains WHERE id = $1`
 var SQLPreviousSSLGradeDomain = `SELECT previous_ssl FROM domains WHERE id = $1`
 
 // SQLCountServerDetails retrives a colum with the number of serverdetails rows that contains a specific domain_id
-var SQLCountServerDetails = "SELECT COUNT(*) FROM serverdetails where domain_id = $1"
+var SQLCountServerDetails = "SELECT COUNT(*) FROM serverdetails WHERE domain_id = $1"
+
+// SQLCountDomains retrives a colum with the number of domains in database
+var SQLCountDomains = "SELECT COUNT(*) FROM domains"
 
 // SQLSelectServerDetails is the sql query to get server.ServerDetails struct fields in serverdetails table given a domain_id
 var SQLSelectServerDetails = `
@@ -63,6 +77,10 @@ var SQLSelectServerDetails = `
 
 // SQLCheckDomainName is the sql query to get id name given a domain
 var SQLCheckDomainName = `SELECT id FROM domains WHERE domain=$1;`
+
+/**
+ * SQL Querys to update/upsert values in DB
+ */
 
 // SQLUpsertIntoServerDetails is the sql query to get id name given a domain
 var SQLUpsertIntoServerDetails = `UPSERT INTO serverdetails 

@@ -60,3 +60,8 @@ type DetailsServer struct {
 	Country  string `json:"country"`
 	Owner    string `json:"owner"`
 }
+
+// StoredDomains is the struct t
+type StoredDomains struct {
+	Items []Domain `json:"items"`
+}

@@ -12,11 +12,10 @@ import (
 )
 
 func initRouter() {
-	servers := []string{"hello server1", "hello server2", "hello server3"}
 
 	r := chi.NewRouter()
 	r.Route("/detectServerSecurity/api/v1/", func(r chi.Router) {
-		r.Get("/serverStatus", handler.ExecuteGetRequest(servers))
+		r.Get("/getServers", handler.ExecuteGetRequest())
 		r.Post("/newServer", handler.ExecutePostRequest())
 
 	})

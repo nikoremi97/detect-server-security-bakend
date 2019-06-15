@@ -11,11 +11,20 @@ import (
 )
 
 // ExecuteGetRequest get method
-func ExecuteGetRequest(response []string) http.HandlerFunc {
-	fmt.Println(response)
-
+func ExecuteGetRequest() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(response)
+
+		storedDomains, err := database.GetDomains()
+
+		if err != nil {
+			json.NewEncoder(w).Encode(err)
+			w.WriteHeader(http.StatusInternalServerError)
+
+		}
+
+		fmt.Print(storedDomains)
+		json.NewEncoder(w).Encode(storedDomains)
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

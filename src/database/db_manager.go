@@ -18,7 +18,7 @@ var DB *sql.DB
 
 // ConnectDB creates connection with database
 func ConnectDB() {
-	database, err := sql.Open("postgres", "postgresql://nicolas@192.168.1.58:26257/bank?sslmode=disable")
+	database, err := sql.Open("postgres", "postgresql://nicolas@192.168.1.58:26257/serversdb?sslmode=disable")
 	if err != nil {
 		log.Fatal("Error connecting to the database: ", err)
 	}
@@ -47,7 +47,7 @@ func setDatabase(tx *sql.Tx) error {
 // if domain does not exists it calls CreateNewDomain, otherwise, it calls updateDomainFields
 func CheckDomain(domain server.Domain) (server.Domain, error) {
 
-	var domainID = ""
+	var domainID uuid.UUID
 	row := DB.QueryRow(SQLCheckDomainName, domain.Name)
 	err := row.Scan(&domainID)
 	switch err {
@@ -76,7 +76,7 @@ func CheckDomain(domain server.Domain) (server.Domain, error) {
 // CreateNewDomain inserts a new domain into database
 func CreateNewDomain(domain server.Domain) error {
 
-	var newDomainID = ""
+	var newDomainID uuid.UUID
 	created := time.Now().UTC()
 	fmt.Println("befor DB.Exec")
 	err := DB.QueryRow(SQLCreateDomain,
@@ -109,7 +109,7 @@ func CreateNewDomain(domain server.Domain) error {
 }
 
 // createServerDetails inserts a new domain into database
-func createServerDetails(domain server.Domain, domainID string) error {
+func createServerDetails(domain server.Domain, domainID uuid.UUID) error {
 	var newDetailID = ""
 	for _, serverDetail := range domain.Servers {
 
@@ -136,7 +136,7 @@ func createServerDetails(domain server.Domain, domainID string) error {
 	return nil
 }
 
-func updateDomain(domain server.Domain, domainID string) (server.Domain, error) {
+func updateDomain(domain server.Domain, domainID uuid.UUID) (server.Domain, error) {
 
 	var lastTimeUpdated time.Time
 	err := DB.QueryRow(SQLGetUpdateTimeDomain, domainID).Scan(&lastTimeUpdated)
@@ -159,14 +159,33 @@ func updateDomain(domain server.Domain, domainID string) (server.Domain, error) 
 }
 
 // count the number of rows in serverdetails table where domain_id is domainID
-func countRows(domainID string) (int, error) {
+func countServerDetails(domainID uuid.UUID) (int, error) {
 	// to retrive the DetialsServers that have the domain_id = domainID, first we need to count it to create
 	// an array with that length
 	var count = 0
 	err := DB.QueryRow(SQLCountServerDetails, domainID).Scan(&count)
 
+	fmt.Println("in countServerDetails >>>")
 	fmt.Println("count >>>")
 	fmt.Print(count)
+
+	if err != nil {
+		fmt.Println("err >>>")
+		fmt.Print(err)
+
+		return 0, errors.New("Error executing query (SQLSelectServerDetails")
+	}
+	return count, nil
+}
+
+// count the number of rows in serverdetails table where domain_id is domainID
+func countDomains() (int, error) {
+
+	fmt.Println("here in countDomains")
+	// to retrive the DetialsServers that have the domain_id = domainID, first we need to count it to create
+	// an array with that length
+	var count = 0
+	err := DB.QueryRow(SQLCountDomains).Scan(&count)
 
 	if err != nil {
 		return 0, errors.New("Error executing query (SQLSelectServerDetails")
@@ -174,28 +193,36 @@ func countRows(domainID string) (int, error) {
 	return count, nil
 }
 
-func compareServerDetails(domain server.Domain, domainID string) (server.Domain, error) {
+func getServerDetails(domainID uuid.UUID) ([]server.DetailsServer, []uuid.UUID, error) {
+	fmt.Println("	here in getServerDetails")
+	fmt.Println(domainID)
+	fmt.Println()
 
-	count, err := countRows(domainID)
+	var count = 0
+	var err error
+	count, err = countServerDetails(domainID)
 
 	// storedServerDetails will cotain the id of the serverdetial row
-	storedIDs := make([]uuid.UUID, count)
+	storedDetailsIDs := make([]uuid.UUID, count)
 	storedServerDetails := make([]server.DetailsServer, count)
+	if err != nil {
+		return storedServerDetails, storedDetailsIDs, errors.New("Error executing counting ServerDetails")
+	}
 
 	rows, err := DB.Query(SQLSelectServerDetails, domainID)
 	if err != nil {
-		return domain, errors.New("Error executing query (SQLSelectServerDetails")
+		return storedServerDetails, storedDetailsIDs, errors.New("Error executing query (SQLSelectServerDetails")
 	}
 
-	// to scan rows and filling storedIDs and storedServerDetails arrays
+	// to scan rows and filling storedDetailsIDs and storedServerDetails arrays
 	index := 0
 	defer rows.Close()
 	for rows.Next() {
 		var serverDetail server.DetailsServer
-		err = rows.Scan(&storedIDs[index], &serverDetail.Address, &serverDetail.SslGrade, &serverDetail.Country, &serverDetail.Owner)
+		err = rows.Scan(&storedDetailsIDs[index], &serverDetail.Address, &serverDetail.SslGrade, &serverDetail.Country, &serverDetail.Owner)
 
 		if err != nil {
-			return domain, errors.New("Error scanning saved ServerDetails from " + domainID)
+			return storedServerDetails, storedDetailsIDs, errors.New("Error scanning stored ServerDetails")
 		}
 
 		storedServerDetails = append(storedServerDetails, serverDetail)
@@ -205,7 +232,18 @@ func compareServerDetails(domain server.Domain, domainID string) (server.Domain,
 	fmt.Println("Stored DetailsServer retrieved")
 	err = rows.Err()
 	if err != nil {
-		return domain, err
+		return storedServerDetails, storedDetailsIDs, err
+	}
+
+	return storedServerDetails, storedDetailsIDs, nil
+}
+
+func compareServerDetails(domain server.Domain, domainID uuid.UUID) (server.Domain, error) {
+
+	storedServerDetails, storedDetailsIDs, err := getServerDetails(domainID)
+
+	if err != nil {
+		return domain, errors.New("Error executing query (SQLSelectServerDetails")
 	}
 
 	var servers = domain.Servers
@@ -214,7 +252,7 @@ func compareServerDetails(domain server.Domain, domainID string) (server.Domain,
 		return domain, nil
 	}
 
-	err = updateServerDetials(domainID, storedIDs, servers)
+	err = updateServerDetials(domainID, storedDetailsIDs, servers)
 	if err != nil {
 		return domain, err
 	}
@@ -224,13 +262,13 @@ func compareServerDetails(domain server.Domain, domainID string) (server.Domain,
 	return domain, err
 }
 
-func updateServerDetials(domainID string, storedIDs []uuid.UUID, servers []server.DetailsServer) error {
+func updateServerDetials(domainID uuid.UUID, storedDetailsIDs []uuid.UUID, servers []server.DetailsServer) error {
 
 	fmt.Println("here in updateServerDetials >>>")
 	for index, serverDetail := range servers {
 		var detailID uuid.UUID
-		if ((len(storedIDs) - 1) - 1) > 0 {
-			detailID = storedIDs[index]
+		if ((len(storedDetailsIDs) - 1) - 1) > 0 {
+			detailID = storedDetailsIDs[index]
 		} else {
 			detailID = uuid.Must(uuid.NewV4())
 		}
@@ -254,7 +292,7 @@ func updateServerDetials(domainID string, storedIDs []uuid.UUID, servers []serve
 	return nil
 }
 
-func updateDomainStatus(domain server.Domain, domainID string) (server.Domain, error) {
+func updateDomainStatus(domain server.Domain, domainID uuid.UUID) (server.Domain, error) {
 
 	previousSSL, err := getPreviousSSL(domainID)
 	if err != nil {
@@ -274,10 +312,83 @@ func updateDomainStatus(domain server.Domain, domainID string) (server.Domain, e
 	return domain, nil
 }
 
-func getPreviousSSL(domainID string) (string, error) {
+func getPreviousSSL(domainID uuid.UUID) (string, error) {
 
 	var previousSSL = ""
 	err := DB.QueryRow(SQLPreviousSSLGradeDomain, domainID).Scan(&previousSSL)
 
 	return previousSSL, err
+}
+
+// GetDomains retrives all domains stored from database.
+// Return a server.StoredDomains object which contians the domains and its serverDetails
+func GetDomains() (server.StoredDomains, error) {
+
+	fmt.Println("here in GetDomains")
+
+	// get the correct size for array
+	var totalDomains = 0
+	var err error
+	totalDomains, err = countDomains()
+
+	fmt.Println("totalDomains >>> ")
+	fmt.Println(totalDomains)
+
+	storedDomains := server.StoredDomains{}
+	storedDomains.Items = make([]server.Domain, totalDomains)
+
+	storedDomainsIDs := make([]uuid.UUID, totalDomains)
+
+	if err != nil {
+		return storedDomains, err
+	}
+
+	// Retrives all domains table rows
+	rows, err := DB.Query(SQLSelectDomains)
+
+	if err != nil {
+		return storedDomains, errors.New("Error retriving stored domains")
+	}
+
+	// Iterates over those domains rows and also create is server details
+	index := 0
+	defer rows.Close()
+	for rows.Next() {
+		fmt.Println("here reading rows")
+		var domain server.Domain
+
+		err = rows.Scan(&storedDomainsIDs[index],
+			&domain.Name,
+			&domain.ServersChanged,
+			&domain.SslGrade,
+			&domain.PreviousSslGrade,
+			&domain.Logo,
+			&domain.Title,
+			&domain.IsDown)
+
+		fmt.Println("domain >>> ")
+		fmt.Println(domain)
+
+		if err != nil {
+			return storedDomains, errors.New("Error scanning stored domains")
+		}
+
+		servers, _, err := getServerDetails(storedDomainsIDs[index])
+
+		fmt.Println("servers >>>")
+		fmt.Println(servers)
+		fmt.Println("err >>> ")
+		fmt.Println(err)
+
+		if err != nil {
+			return storedDomains, errors.New("Error retriving server details for domain")
+
+		}
+
+		domain.Servers = servers
+		storedDomains.Items = append(storedDomains.Items, domain)
+		index++
+	}
+
+	return storedDomains, err
 }
