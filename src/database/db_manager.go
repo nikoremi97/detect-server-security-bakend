@@ -35,6 +35,7 @@ func ConnectDB() {
 	}
 }
 
+// setDatabase set the database serversdb in the cluster
 func setDatabase(tx *sql.Tx) error {
 	if _, err := tx.Exec(
 		"SET database = serversDB"); err != nil {
@@ -136,6 +137,8 @@ func createServerDetails(domain server.Domain, domainID uuid.UUID) error {
 	return nil
 }
 
+// updateDomain update domain if the time diff between time.Now() and the updated field in DB for that domain is 1 minute.
+// (It could be hours or whatever time metric)
 func updateDomain(domain server.Domain, domainID uuid.UUID) (server.Domain, error) {
 
 	var lastTimeUpdated time.Time
@@ -152,6 +155,7 @@ func updateDomain(domain server.Domain, domainID uuid.UUID) (server.Domain, erro
 	// convert diff to days
 	minutes := int(diff.Minutes())
 	if minutes > 1 {
+		// with the domain is updated
 		domain, err = compareServerDetails(domain, domainID)
 	}
 
@@ -193,6 +197,8 @@ func countDomains() (int, error) {
 	return count, nil
 }
 
+// getServerDetails creates an array of DetailsServer for a specific domainID.
+// It also returns an array of the DetailsServer uuuid
 func getServerDetails(domainID uuid.UUID) ([]server.DetailsServer, []uuid.UUID, error) {
 	fmt.Println("	here in getServerDetails")
 	fmt.Println(domainID)
@@ -202,7 +208,7 @@ func getServerDetails(domainID uuid.UUID) ([]server.DetailsServer, []uuid.UUID, 
 	var err error
 	count, err = countServerDetails(domainID)
 
-	// storedServerDetails will cotain the id of the serverdetial row
+	// storedServerDetails will contain the id of the serverdetial row
 	storedDetailsIDs := make([]uuid.UUID, count)
 	storedServerDetails := make([]server.DetailsServer, count)
 	if err != nil {
@@ -225,7 +231,7 @@ func getServerDetails(domainID uuid.UUID) ([]server.DetailsServer, []uuid.UUID, 
 			return storedServerDetails, storedDetailsIDs, errors.New("Error scanning stored ServerDetails")
 		}
 
-		storedServerDetails = append(storedServerDetails, serverDetail)
+		storedServerDetails[index] = serverDetail
 		index++
 	}
 
@@ -238,6 +244,8 @@ func getServerDetails(domainID uuid.UUID) ([]server.DetailsServer, []uuid.UUID, 
 	return storedServerDetails, storedDetailsIDs, nil
 }
 
+// compareServerDetails compares domain.Servers and compare with the stored servers in DB.
+// If there is a difference, update domain status fields.
 func compareServerDetails(domain server.Domain, domainID uuid.UUID) (server.Domain, error) {
 
 	storedServerDetails, storedDetailsIDs, err := getServerDetails(domainID)
@@ -252,22 +260,30 @@ func compareServerDetails(domain server.Domain, domainID uuid.UUID) (server.Doma
 		return domain, nil
 	}
 
+	// updateServerDetials in the DB.
 	err = updateServerDetials(domainID, storedDetailsIDs, servers)
 	if err != nil {
 		return domain, err
 	}
 
+	// updateDomainStatus updates domain status fields in DB and return the updated domain
 	domain, err = updateDomainStatus(domain, domainID)
 
 	return domain, err
 }
 
+// updateServerDetials updates the serverDetails rows for a given domainID.
+// If there is a serverDetail for a given uuid, it updates its fields.
+// Otherwise, it insert another serverDetail with a new uuid and the same domainID.
 func updateServerDetials(domainID uuid.UUID, storedDetailsIDs []uuid.UUID, servers []server.DetailsServer) error {
 
+	// check if it is okay
 	fmt.Println("here in updateServerDetials >>>")
 	for index, serverDetail := range servers {
 		var detailID uuid.UUID
-		if ((len(storedDetailsIDs) - 1) - 1) > 0 {
+		var i = index
+		// if now there are more servers, it creates a new UUID
+		if len(storedDetailsIDs)-i > 0 {
 			detailID = storedDetailsIDs[index]
 		} else {
 			detailID = uuid.Must(uuid.NewV4())
@@ -292,6 +308,7 @@ func updateServerDetials(domainID uuid.UUID, storedDetailsIDs []uuid.UUID, serve
 	return nil
 }
 
+// updateDomainStatus updates PreviousSslGrade, SslGrade, ServersChanged in database
 func updateDomainStatus(domain server.Domain, domainID uuid.UUID) (server.Domain, error) {
 
 	previousSSL, err := getPreviousSSL(domainID)
@@ -302,6 +319,8 @@ func updateDomainStatus(domain server.Domain, domainID uuid.UUID) (server.Domain
 	domain.PreviousSslGrade = previousSSL
 	domain.SslGrade = server.GetSslGrade(domain.Servers)
 	domain.ServersChanged = true
+
+	// once the domain fields are updated, it updates the domain in DB.
 	_, err = DB.Exec(SQLUpdateDomainStatus, domainID, domain.ServersChanged, domain.SslGrade, domain.PreviousSslGrade)
 
 	if err != nil {
@@ -312,6 +331,7 @@ func updateDomainStatus(domain server.Domain, domainID uuid.UUID) (server.Domain
 	return domain, nil
 }
 
+// getPreviousSSL get the stored SSLGrade for a given domainID in the DB.
 func getPreviousSSL(domainID uuid.UUID) (string, error) {
 
 	var previousSSL = ""
@@ -330,9 +350,6 @@ func GetDomains() (server.StoredDomains, error) {
 	var totalDomains = 0
 	var err error
 	totalDomains, err = countDomains()
-
-	fmt.Println("totalDomains >>> ")
-	fmt.Println(totalDomains)
 
 	storedDomains := server.StoredDomains{}
 	storedDomains.Items = make([]server.Domain, totalDomains)
@@ -373,11 +390,9 @@ func GetDomains() (server.StoredDomains, error) {
 			return storedDomains, errors.New("Error scanning stored domains")
 		}
 
+		// now calls getServerDetails to get domain's servers
 		servers, _, err := getServerDetails(storedDomainsIDs[index])
 
-		fmt.Println("servers >>>")
-		fmt.Println(servers)
-		fmt.Println("err >>> ")
 		fmt.Println(err)
 
 		if err != nil {
@@ -385,8 +400,9 @@ func GetDomains() (server.StoredDomains, error) {
 
 		}
 
+		// assign domain to items[index]
 		domain.Servers = servers
-		storedDomains.Items = append(storedDomains.Items, domain)
+		storedDomains.Items[index] = domain
 		index++
 	}
 
