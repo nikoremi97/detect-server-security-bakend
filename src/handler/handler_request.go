@@ -57,7 +57,8 @@ func ExecutePostRequest() http.HandlerFunc {
 			return
 		}
 
-		if err := database.CheckDomain(newDomain); err != nil {
+		newDomain, err = database.CheckDomain(newDomain)
+		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 

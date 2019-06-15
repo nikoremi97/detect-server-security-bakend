@@ -39,14 +39,22 @@ INSERT INTO serverdetails (
 	$3,
 	$4,
 	$5
-)`
+)
+RETURNING id`
 
-// SQLSelectUpdateDomain is the sql query to get update field from a given domain id
-var SQLSelectUpdateDomain = `SELECT updated FROM domains WHERE id = $1`
+// SQLGetUpdateTimeDomain is the sql query to get update field from a given domain id
+var SQLGetUpdateTimeDomain = `SELECT updated FROM domains WHERE id = $1`
+
+// SQLPreviousSSLGradeDomain is the sql query to get previous_ssl field from a given domain id
+var SQLPreviousSSLGradeDomain = `SELECT previous_ssl FROM domains WHERE id = $1`
+
+// SQLCountServerDetails retrives a colum with the number of serverdetails rows that contains a specific domain_id
+var SQLCountServerDetails = "SELECT COUNT(*) FROM serverdetails where domain_id = $1"
 
 // SQLSelectServerDetails is the sql query to get server.ServerDetails struct fields in serverdetails table given a domain_id
 var SQLSelectServerDetails = `
  SELECT
+	id,
 	address,
 	ssl_grade,
 	country,
@@ -55,3 +63,18 @@ var SQLSelectServerDetails = `
 
 // SQLCheckDomainName is the sql query to get id name given a domain
 var SQLCheckDomainName = `SELECT id FROM domains WHERE domain=$1;`
+
+// SQLUpsertIntoServerDetails is the sql query to get id name given a domain
+var SQLUpsertIntoServerDetails = `UPSERT INTO serverdetails 
+	(id,
+	address,
+	ssl_grade,
+	country,
+	owner,
+	domain_id) 
+	VALUES ($1, $2, $3, $4, $5, $6);`
+
+// SQLUpdateDomainStatus to update servers_changed & previous_ssl
+var SQLUpdateDomainStatus = `UPDATE domains
+SET servers_changed = $2, ssl_grade = $3, previous_ssl = $4
+WHERE id = $1;`

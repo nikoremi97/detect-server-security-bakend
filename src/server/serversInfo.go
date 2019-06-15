@@ -12,12 +12,6 @@ import (
 	"github.com/likexian/whois-go"
 )
 
-const ipv6AddressWarning = "CAN´T ANALYZE IPV6 ADDRESS"
-const unknown = "UNKNOWN"
-
-// SSLGrades is an array with the posible ssl grade values
-var SSLGrades = []string{"A+", "A", "B", "C", "D", "E", "F", "T", "M"}
-
 // CreateServer classifies endpoints into Domain structures.
 func CreateServer(domainDescription DomainDescription) (Domain, error) {
 	fmt.Println("here in CreateServer")
@@ -54,7 +48,7 @@ func ConfigureServerDescription(domainDescription DomainDescription, domain Doma
 			detailsServer[i].SslGrade = endpoints[i].Grade
 
 		} else {
-			detailsServer[i].SslGrade = unknown
+			detailsServer[i].SslGrade = UNKNOWN
 
 		}
 
@@ -63,8 +57,8 @@ func ConfigureServerDescription(domainDescription DomainDescription, domain Doma
 		if strings.Contains(endpoints[i].IPAddress, ":") {
 			fmt.Println("IS IPV6 >>> ")
 
-			detailsServer[i].Country = ipv6AddressWarning
-			detailsServer[i].Owner = ipv6AddressWarning
+			detailsServer[i].Country = Ipv6AddressWarning
+			detailsServer[i].Owner = Ipv6AddressWarning
 			continue
 		}
 
@@ -74,8 +68,8 @@ func ConfigureServerDescription(domainDescription DomainDescription, domain Doma
 			fmt.Println("WHOIS COMMAND FAILED")
 			domain.IsDown = true
 
-			detailsServer[i].Country = unknown
-			detailsServer[i].Owner = unknown
+			detailsServer[i].Country = UNKNOWN
+			detailsServer[i].Owner = UNKNOWN
 
 			return newDomain, errors.New("WhoIs command failed")
 		}
@@ -85,8 +79,9 @@ func ConfigureServerDescription(domainDescription DomainDescription, domain Doma
 		detailsServer[i] = getOwnerAndCountry(detailsServer[i], result)
 
 	}
-	domain.SslGrade = getSslGrade(domain.Servers)
-	domain.PreviousSslGrade = getPreviousSSL(domain.Servers)
+	domain.SslGrade = GetSslGrade(domain.Servers)
+	// because the first time the previous sslgrade is the same as the current one
+	domain.PreviousSslGrade = domain.SslGrade
 
 	newDomain = domain
 	return newDomain, nil
@@ -147,10 +142,10 @@ func getOwnerAndCountry(descriptionServer DetailsServer, result string) DetailsS
 	return descriptionServer
 }
 
-// getSslGrade gets the lower grade of the SSLGrade in Server endpoints
-func getSslGrade(descriptionServer []DetailsServer) string {
+// GetSslGrade gets the lower grade of the SSLGrade in Server endpoints
+func GetSslGrade(descriptionServer []DetailsServer) string {
 
-	fmt.Println("HERE IN getSslGrade")
+	fmt.Println("HERE IN GetSslGrade")
 	fmt.Println(descriptionServer)
 	var sslGrade = ""
 	var gradeIndex = -1
@@ -158,7 +153,7 @@ func getSslGrade(descriptionServer []DetailsServer) string {
 	for _, endpoint := range descriptionServer {
 		fmt.Println(endpoint.SslGrade)
 
-		if endpoint.SslGrade != unknown {
+		if endpoint.SslGrade != UNKNOWN {
 			var currentGrade = utils.IndexOf(endpoint.SslGrade, SSLGrades)
 
 			if currentGrade > gradeIndex {
@@ -177,8 +172,9 @@ func getSslGrade(descriptionServer []DetailsServer) string {
 	return sslGrade
 }
 
-// getSslGrade gets the lower grade of the SSLGrade in Server endpoints
-func getPreviousSSL(descriptionServer []DetailsServer) string {
+// GetPreviousSSL gets the previous SSL grade in Domain
+func GetPreviousSSL() string {
+
 	return "TODO"
 }
 
@@ -234,7 +230,7 @@ func SameServerDetails(oldDetailsServer []DetailsServer, currentDetailsServer []
 
 	// First lets ensure both have the same length
 	if len(oldDetailsServer) != len(currentDetailsServer) {
-		return true
+		return false
 	}
 
 	for index, oldDetail := range oldDetailsServer {
@@ -244,10 +240,10 @@ func SameServerDetails(oldDetailsServer []DetailsServer, currentDetailsServer []
 			(oldDetail.Country != currentDetail.Country) ||
 			(oldDetail.Owner != currentDetail.Owner) ||
 			(oldDetail.SslGrade != currentDetail.SslGrade) {
-			return true
+			return false
 
 		}
 	}
 
-	return false
+	return true
 }

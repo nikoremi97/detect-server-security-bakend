@@ -1,5 +1,18 @@
 package server
 
+// CONSTANTS
+
+// Ipv6AddressWarning is the warning when the IP is ipv6
+const Ipv6AddressWarning = "CAN´T ANALYZE IPV6 ADDRESS"
+
+// UNKNOWN is the value when can´t analyze the server details
+const UNKNOWN = "UNKNOWN"
+
+// SSLGrades is an array with the posible ssl grade values
+var SSLGrades = []string{"A+", "A", "B", "C", "D", "E", "F", "T", "M"}
+
+// Structure types
+
 // DomainDescription is the struct of the SSL Test report
 type DomainDescription struct {
 	Host            string                `json:"host,omitempty"`
