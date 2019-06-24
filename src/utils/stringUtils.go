@@ -21,6 +21,7 @@ func IndexOf(element string, data []string) int {
 // ValidateQuery validates if query has a valid domain
 func ValidateQuery(queryParam string) (fixedQuery string, err error) {
 	fmt.Println("here in ValidateQuery")
+	fmt.Println(queryParam)
 	var query = queryParam
 	query = strings.TrimSpace(query)
 	query = strings.ToLower(query)

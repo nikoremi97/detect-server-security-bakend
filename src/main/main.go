@@ -22,9 +22,9 @@ func initRouter() {
 
 	fmt.Printf("Starting server for testing HTTP...\n")
 
-	// Backend listen and serve in port 3000
-	port := ":3000"
-	if err := http.ListenAndServe(port, r); err != nil {
+	// Backend listen and serve in 192.168.1.57 port 3000
+	address := "192.168.1.57:3000"
+	if err := http.ListenAndServe(address, r); err != nil {
 		log.Fatal(err)
 	}
 }

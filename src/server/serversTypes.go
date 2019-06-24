@@ -6,12 +6,17 @@ package server
 const Ipv6AddressWarning = "CAN´T ANALYZE IPV6 ADDRESS"
 
 // UNKNOWN is the value when can´t analyze the server details
-const UNKNOWN = "UNKNOWN"
+const UNKNOWN = "-"
 
 // SSLGrades is an array with the posible ssl grade values
 var SSLGrades = []string{"A+", "A", "B", "C", "D", "E", "F", "T", "M"}
 
 // Structure types
+
+// BodyRequest is the struct to parse the body from post requests
+type BodyRequest struct {
+	DomainRequestParam string `json:"domain"`
+}
 
 // DomainDescription is the struct of the SSL Test report
 type DomainDescription struct {

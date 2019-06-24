@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	database "../database"
@@ -32,19 +33,22 @@ func ExecuteGetRequest() http.HandlerFunc {
 func ExecutePostRequest() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		// Get form of request
-		if err := r.ParseForm(); err != nil {
-			fmt.Println(w, "ParseForm() err: %v", err)
+		// get the data in the request's body and creates a []byte called body
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			fmt.Println(w, "Error reading request body", err)
+			http.Error(w, "Error reading request body", http.StatusBadRequest)
+		}
 
-			http.Error(w, "Error parsing form", http.StatusBadRequest)
-			return
+		var t = &server.BodyRequest{}
+		err = json.Unmarshal(body, t)
+		if err != nil {
+			fmt.Println(w, "Error Unmarshall bodyRequest", err)
+			http.Error(w, "Error Unmarshall bodyRequest", http.StatusInternalServerError)
 		}
 
 		// get domain field of request
-		var domainToAnalyze = ""
-		domainToAnalyze = r.FormValue("domain")
-
-		// domainToAnalyze = strings.ToLower(domainToAnalyze)
+		var domainToAnalyze = t.DomainRequestParam
 		domainQuery, err := utils.ValidateQuery(domainToAnalyze)
 
 		// handle if there is an error in domain typed by user
@@ -75,7 +79,7 @@ func ExecutePostRequest() http.HandlerFunc {
 
 		fmt.Println("")
 		fmt.Println("serversDescription >>>>")
-		fmt.Print(newDomain)
+		fmt.Println(newDomain)
 		json.NewEncoder(w).Encode(newDomain)
 		w.WriteHeader(http.StatusOK)
 
