@@ -1,3 +1,14 @@
+/*
+ * Initial set up of DB
+ */
+CREATE USER IF NOT EXISTS *your_name_here*;
+CREATE DATABASE serversdb;
+SET DATABASE = serversdb;
+GRANT ALL ON DATABASE db_troura TO abc11;
+
+/**
+ * Create tables in DB
+ */
 CREATE TABLE domains (
 	id UUID NOT NULL DEFAULT gen_random_uuid(),
 	domain STRING NULL,

@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -12,8 +11,6 @@ var enpointAnalyzer = "https://api.ssllabs.com/api/v3/analyze?host="
 
 // AnalyzeDomain make requests to SSLLABS analyze endpoint and returns the created Domain based on it
 func AnalyzeDomain(domainQuery string) (Domain, error) {
-
-	fmt.Println("Here in AnalyzeDomain")
 
 	newDomain := Domain{}
 	// make request to test server until its response contains endpoints field

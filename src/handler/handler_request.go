@@ -23,7 +23,7 @@ func ExecuteGetRequest() http.HandlerFunc {
 
 		}
 
-		fmt.Print(storedDomains)
+		fmt.Println(storedDomains)
 		json.NewEncoder(w).Encode(storedDomains)
 		w.WriteHeader(http.StatusOK)
 	}

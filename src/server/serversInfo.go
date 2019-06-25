@@ -65,7 +65,6 @@ func ConfigureServerDescription(domainDescription DomainDescription, domain Doma
 		fmt.Println("WHO IS >>>>")
 		result, err := whois.Whois(endpoints[i].IPAddress)
 		if err != nil {
-			fmt.Println("WHOIS COMMAND FAILED")
 			domain.IsDown = true
 
 			detailsServer[i].Country = UNKNOWN
@@ -146,7 +145,6 @@ func getOwnerAndCountry(descriptionServer DetailsServer, result string) DetailsS
 func GetSslGrade(descriptionServer []DetailsServer) string {
 
 	fmt.Println("HERE IN GetSslGrade")
-	fmt.Println(descriptionServer)
 	var sslGrade = ""
 	var gradeIndex = -1
 
@@ -170,12 +168,6 @@ func GetSslGrade(descriptionServer []DetailsServer) string {
 	}
 
 	return sslGrade
-}
-
-// GetPreviousSSL gets the previous SSL grade in Domain
-func GetPreviousSSL() string {
-
-	return "TODO"
 }
 
 // getTitle from the head of the host webpage
