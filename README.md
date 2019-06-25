@@ -14,11 +14,11 @@ To run this project, do the following steps:
 2. Install Go in your machine -> https://golang.org/doc/install
 
 3. Add these packages to Go:  
-3.1 github.com/asaskevich/govalidator  
-3.2 github.com/likexian/whois-go  
-3.3 github.com/go-chi/chi  
-3.4 github.com/cockroachdb/cockroach-go/crdb  
-3.5	github.com/gofrs/uuid  
+3.1 `github.com/asaskevich/govalidator`  
+3.2 `github.com/likexian/whois-go`  
+3.3 `github.com/go-chi/chi`  
+3.4 `github.com/cockroachdb/cockroach-go/crdb`  
+3.5	`github.com/gofrs/uuid`  
 
 4. Install CockroachDB in your machine -> https://www.cockroachlabs.com/docs/stable/install-cockroachdb-linux.html
 
