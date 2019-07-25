@@ -21,8 +21,8 @@ func initRouter() {
 
 	})
 
-	// Backend listen and serve in 192.168.1.57 port 3000
-	address := "192.168.1.57:3000"
+	// Backend listen and serve in  port 3000
+	address := ":3000"
 	if err := http.ListenAndServe(address, r); err != nil {
 		log.Fatal(err)
 	}

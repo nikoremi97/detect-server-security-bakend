@@ -4,7 +4,7 @@
 CREATE USER IF NOT EXISTS *your_name_here*;
 CREATE DATABASE serversdb;
 SET DATABASE = serversdb;
-GRANT ALL ON DATABASE db_troura TO abc11;
+GRANT ALL ON DATABASE serversdb TO *your_name_here*;
 
 /**
  * Create tables in DB
