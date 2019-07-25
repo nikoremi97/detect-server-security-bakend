@@ -18,7 +18,7 @@ var DB *sql.DB
 
 // ConnectDB creates connection with database
 func ConnectDB() {
-	database, err := sql.Open("postgres", "postgresql://nicolas@10.98.89.100:26257/serversdb?ssl=true&sslmode=require&sslrootcert=cockroach-certs/ca.crt&sslkey=cockroach-certs/client.nicolas.key&sslcert=cockroach-certs/client.nicolas.crt")
+	database, err := sql.Open("postgres", "postgresql://nicolas@10.98.89.152:26257/serversdb?sslmode=disable")
 	if err != nil {
 		log.Fatal("Error connecting to the database: ", err)
 	}
