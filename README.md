@@ -13,7 +13,7 @@ To run this project, do the following steps:
 
 2. Install Go in your machine -> https://golang.org/doc/install
 
-3. Add these packages to Go:  
+3. Add these packages to Go by running go get -d -v ./...
 3.1 `github.com/asaskevich/govalidator`  
 3.2 `github.com/likexian/whois-go`  
 3.3 `github.com/go-chi/chi`  
@@ -28,5 +28,8 @@ To run this project, do the following steps:
 5.3 To set up the DB, run the sql lines in `src/database/db_schema.sql` separated by `;`  
 
 6. On path `src/main` run `go run main.go`
+
+7. To generate Go binary run this command on linux:
+    `CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .`
 
 Enjoy!
